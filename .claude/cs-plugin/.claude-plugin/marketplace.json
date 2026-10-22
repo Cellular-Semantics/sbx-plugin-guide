@@ -1,0 +1,36 @@
+{
+  "name": "sbx-plugin-trial-plugins",
+  "owner": {
+    "name": "cs-plugin"
+  },
+  "metadata": {
+    "description": "The plugins sbx-plugin-trial uses, each pinned to a release. Generated from plugins.toml by cs-plugin; do not edit."
+  },
+  "plugins": [
+    {
+      "name": "cap-tools",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Cellular-Semantics/cap_skills.git",
+        "path": "plugins/cap-tools",
+        "ref": "cap-tools--v0.4.0"
+      },
+      "description": "Search CAP's dataset catalogue, pull differential expression, and check per-cell-type gene expression."
+    },
+    {
+      "name": "remote-h5ad-obs",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/ubyndr/atlas-skills-release-test.git",
+        "path": "plugins/remote-h5ad-obs",
+        "ref": "remote-h5ad-obs--v0.3.0"
+      },
+      "description": "Read the per-cell obs table out of a remote h5ad over HTTP range requests, without downloading the expression matrix."
+    },
+    {
+      "name": "sbx-plugin-trial-set",
+      "source": "./sbx-plugin-trial-set",
+      "description": "Installs every plugin sbx-plugin-trial uses, at the release pinned in plugins.toml. Carries nothing of its own."
+    }
+  ]
+}

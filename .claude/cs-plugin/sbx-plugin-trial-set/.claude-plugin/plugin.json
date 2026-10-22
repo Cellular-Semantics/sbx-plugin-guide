@@ -1,0 +1,9 @@
+{
+  "name": "sbx-plugin-trial-set",
+  "version": "1.0.0",
+  "description": "Every plugin sbx-plugin-trial uses, as pinned in plugins.toml.",
+  "dependencies": [
+    "cap-tools",
+    "remote-h5ad-obs"
+  ]
+}

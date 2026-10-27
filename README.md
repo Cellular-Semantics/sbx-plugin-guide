@@ -34,7 +34,7 @@ Once uv, sbx and the network policy are set up ([GUIDE.md](GUIDE.md) steps
 git clone https://github.com/Cellular-Semantics/sbx-plugin-guide.git
 cd sbx-plugin-guide
 sbx create --name my-project claude .
-sbx exec -e PROJ="$PWD" my-project bash -lc 'cd "$PROJ" && uv tool run --from "git+https://github.com/ubyndr/cs-plugin@pkg-cs-plugin--v0.1.1#subdirectory=packages/cs-plugin" cs-plugin sync'
+sbx exec -e PROJ="$PWD" my-project bash -lc 'cd "$PROJ" && uv tool run --default-index https://test.pypi.org/simple/ cs-plugin@0.1.1 sync'
 sbx run --name my-project        # type /login once, then try a prompt from examples/
 ```
 

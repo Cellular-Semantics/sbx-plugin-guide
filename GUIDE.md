@@ -4,7 +4,7 @@ How to set up a fresh machine so that Claude Code runs inside a Docker Sandbox
 (`sbx`) with exactly the plugins a project pins, and nothing else.
 
 Tested on macOS 26 (Apple silicon) with sbx v0.49.2, Claude Code 2.1.306
-inside the sandbox, and cs-plugin 0.1.1 run from its GitHub release tag. Linux notes are in
+inside the sandbox, and cs-plugin 0.1.1 from TestPyPI. Linux notes are in
 step 2.
 
 ## How it fits together
@@ -20,18 +20,15 @@ laptop. It does see the project folder. So you **choose plugins on the laptop**
 (edit and commit `plugins.toml`) and **install them inside the sandbox**
 (`cs-plugin sync`).
 
-> cs-plugin is not on PyPI yet. Every `cs-plugin` command below runs it with
-> uv straight from its GitHub release tag, `pkg-cs-plugin--v0.1.1`. To move to
-> a newer release, change the tag. Once it is on PyPI, `uvx cs-plugin@<version>`
-> will do.
+> cs-plugin is on TestPyPI only for now. Every `cs-plugin` command below is
+> written for TestPyPI. Once it is on PyPI, drop
+> `--default-index https://test.pypi.org/simple/` and the `@0.1.1`.
 
 ---
 
 ## 1. Install uv on the laptop
 
 uv runs `cs-plugin` without installing it, and fetches the Python it needs.
-The first run builds cs-plugin from GitHub, which takes a few seconds; later
-runs use uv's cache.
 
 ```sh
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -43,7 +40,7 @@ Make a shortcut for this terminal session (add it to `~/.zshrc` or `~/.bashrc`
 to keep it):
 
 ```sh
-alias cs-plugin='uvx --from "git+https://github.com/ubyndr/cs-plugin@pkg-cs-plugin--v0.1.1#subdirectory=packages/cs-plugin" cs-plugin'
+alias cs-plugin='uvx --default-index https://test.pypi.org/simple/ cs-plugin@0.1.1'
 cs-plugin --version        # cs-plugin 0.1.1
 ```
 
@@ -118,17 +115,18 @@ Check: `sbx ls` prints `No sandboxes found` (not `not signed in`).
 ## 4. Set the network policy (once per machine)
 
 Sandboxes block all outbound traffic that a rule does not allow. Start from
-Docker's **balanced** preset, which already allows the Anthropic API, GitHub
-(where cs-plugin and the plugins come from), PyPI and astral.sh, then add what plugin installs and the plugins themselves
+Docker's **balanced** preset, which already allows the Anthropic API, GitHub,
+PyPI and astral.sh, then add what plugin installs and the plugins themselves
 need:
 
 ```sh
 sbx policy init balanced
-sbx policy allow network "releases.astral.sh,release-assets.githubusercontent.com,claude.ai,celltype.info"
+sbx policy allow network "test.pypi.org,test-files.pythonhosted.org,releases.astral.sh,release-assets.githubusercontent.com,claude.ai,celltype.info"
 ```
 
 | Domain | Why |
 |---|---|
+| `test.pypi.org`, `test-files.pythonhosted.org` | cs-plugin, while it is on TestPyPI |
 | `releases.astral.sh`, `release-assets.githubusercontent.com` | uv fetching tools and Python |
 | `claude.ai` | signing Claude Code in, inside the sandbox |
 | `celltype.info` | what the `cap-tools` plugin talks to |
@@ -184,19 +182,12 @@ as user `agent`, with `git`, Python, Node, Claude Code and `uv` already there.
 From the project folder on the laptop:
 
 ```sh
-sbx exec -e PROJ="$PWD" my-project bash -lc 'cd "$PROJ" && uv tool run --from "git+https://github.com/ubyndr/cs-plugin@pkg-cs-plugin--v0.1.1#subdirectory=packages/cs-plugin" cs-plugin sync'
+sbx exec -e PROJ="$PWD" my-project bash -lc 'cd "$PROJ" && uv tool run --default-index https://test.pypi.org/simple/ cs-plugin@0.1.1 sync'
 ```
 
 `-e PROJ="$PWD"` passes the project's path into the sandbox, where it is the
 same path. Use `uv tool run` here: the sandbox has `uv` but not the `uvx`
-shortcut. The double quotes around the `git+…` address sit inside the single
-quotes, so they reach the sandbox intact.
-
-This one command is the whole install. `sync` reads `plugins.toml` and the
-generated `.claude/` files and runs `claude plugin install` for each pinned
-plugin at its pinned tag. Nothing else needs installing: the CLIs the skills
-call (such as `cap` for `cap-tools`) are fetched by uv the first time a skill
-uses them. Everything stays in the sandbox until `sbx rm`.
+shortcut.
 
 Expected output ends with one `ok` line per plugin:
 
@@ -358,6 +349,6 @@ sbx rm my-project          # deletes the sandbox and its plugin installs; the pr
 
 ## Reference
 
-- cs-plugin: https://github.com/ubyndr/cs-plugin (releases are tagged `pkg-cs-plugin--v<version>`)
+- cs-plugin: https://github.com/ubyndr/cs-plugin (TestPyPI: https://test.pypi.org/project/cs-plugin/)
 - Docker Sandboxes: https://docs.docker.com/ai/sandboxes/
 - sbx releases: https://github.com/docker/sbx-releases

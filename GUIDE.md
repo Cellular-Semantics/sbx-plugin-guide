@@ -119,8 +119,8 @@ Check: `sbx ls` prints `No sandboxes found` (not `not signed in`).
 
 Sandboxes block all outbound traffic that a rule does not allow. Start from
 Docker's **balanced** preset, which already allows the Anthropic API, GitHub
-(where cs-plugin and the plugins come from), PyPI and astral.sh, then add what plugin installs and the plugins themselves
-need:
+(where cs-plugin and the plugins come from), PyPI and astral.sh, then add what
+plugin installs and the plugins themselves need:
 
 ```sh
 sbx policy init balanced
@@ -132,6 +132,20 @@ sbx policy allow network "releases.astral.sh,release-assets.githubusercontent.co
 | `releases.astral.sh`, `release-assets.githubusercontent.com` | uv fetching tools and Python |
 | `claude.ai` | signing Claude Code in, inside the sandbox |
 | `celltype.info` | what the `cap-tools` plugin talks to |
+
+These rules apply to **every sandbox on this machine**, for every project, and
+stay until you remove them, so you do this step once, not per project or
+sandbox. Come back to it only when a new plugin needs a domain that is not
+allowed yet. To allow a domain for one sandbox only, add
+`--sandbox <name>`:
+
+```sh
+sbx policy allow network --sandbox my-project example.org
+```
+
+`sbx policy ls` shows what applies where: `local-policy` (applies to `all`)
+holds the rules above; the per-sandbox `kit` policies are the Claude domains
+each `claude` sandbox gets automatically, which you do not need to add.
 
 Check a domain at any time:
 

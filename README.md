@@ -43,3 +43,10 @@ Or without opening a session:
 ```sh
 ./scripts/sbx-claude.sh my-project "/cap-tools:cap-datasets list Human Cell Atlas datasets about the lung"
 ```
+
+Or call the `cap` CLI the skills use, without Claude (see
+[examples/03-cap-cli.md](examples/03-cap-cli.md)):
+
+```sh
+sbx exec my-project bash -lc 'uv tool run --from "git+https://github.com/Cellular-Semantics/cap_skills@v0.4.0#subdirectory=packages/cap-client" cap datasets --consortium "Human Cell Atlas" --name lung --format text'
+```

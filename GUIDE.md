@@ -302,6 +302,15 @@ sandbox (as `uv tool run --from …`) checks the tool and the network policy
 without using Claude. It does not test whether Claude chooses and uses the skill
 well; the two options above do.
 
+For `cap-tools`, that tool is the `cap` CLI:
+
+```sh
+sbx exec my-project bash -lc 'uv tool run --from "git+https://github.com/Cellular-Semantics/cap_skills@v0.4.0#subdirectory=packages/cap-client" cap datasets --consortium "Human Cell Atlas" --format text'
+```
+
+[examples/03-cap-cli.md](examples/03-cap-cli.md) shows how to find the tag,
+define a `cap` shortcut in a sandbox shell, and what the output looks like.
+
 ## 10. Changing plugins later
 
 On the laptop:

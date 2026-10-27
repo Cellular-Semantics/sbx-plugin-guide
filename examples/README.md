@@ -8,8 +8,9 @@ the output recorded. They assume you have done [GUIDE.md](../GUIDE.md) steps
 |---|---|---|
 | [01-cap-datasets.md](01-cap-datasets.md) | `cap-tools:cap-datasets` | find lung datasets in the CAP catalogue |
 | [02-cap-gene-expression.md](02-cap-gene-expression.md) | `cap-tools:cap-gene-expression` | which cell types express SFTPC |
+| [03-cap-cli.md](03-cap-cli.md) | none: the `cap` CLI directly | the same two questions, without Claude |
 
-All of them use [`scripts/sbx-claude.sh`](../scripts/sbx-claude.sh), a thin
+Examples 1 and 2 use [`scripts/sbx-claude.sh`](../scripts/sbx-claude.sh), a thin
 wrapper over the one-shot `sbx exec … claude -p` command explained in
 [GUIDE.md § 9](../GUIDE.md#one-shot-from-the-laptops-terminal).
 

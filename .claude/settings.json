@@ -9,7 +9,6 @@
   },
   "enabledPlugins": {
     "cap-tools@sbx-plugin-trial-plugins": true,
-    "remote-h5ad-obs@sbx-plugin-trial-plugins": true,
     "sbx-plugin-trial-set@sbx-plugin-trial-plugins": true
   }
 }

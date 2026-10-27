@@ -7,4 +7,3 @@ name = "sbx-plugin-trial"
 
 [plugins]
 cap-tools = "0.4.0"
-remote-h5ad-obs = "0.3.0"

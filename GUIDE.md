@@ -371,20 +371,27 @@ and anything else running there never see the real value.
 sbx knows these services: `anthropic`, `copilot`, `cursor`, `devin`, `droid`,
 `github`, `google`, `groq`, `mistral`, `nebius`, `openai`, `openrouter`, `xai`.
 
-For example, a GitHub personal access token (the token below is a dummy):
+For example, a GitHub personal access token:
 
 ```sh
 # for every sandbox on this machine
 sbx secret set github                       # asks for the token without showing it
 
 # for one sandbox only
-echo "ghp_EXAMPLE0000000000000000000000000000" | sbx secret set github --sandbox my-project
+sbx secret set github --sandbox my-project
+
+# in a script: read the token without echoing it, then pipe it in
+read -rs GH_PAT && echo "$GH_PAT" | sbx secret set github --sandbox my-project; unset GH_PAT
 
 # straight from the GitHub CLI, re-read when it expires
 sbx secret set github --command 'gh auth token'
 ```
 
-Avoid `--token <value>`: it lands in your shell history.
+Never put the token itself on the command line, as in
+`echo "ghp_…" | sbx secret set github` or `--token ghp_…`: the shell saves the
+whole line, token included, in its history file (`~/.zsh_history`,
+`~/.bash_history`). If that happened, revoke the token on GitHub and delete the
+line from the history file.
 
 Inside the sandbox, `GH_TOKEN` is set to a placeholder
 (`gho_sbxproxymanaged000…`); `gh`, `git` and other tools use it as usual, and

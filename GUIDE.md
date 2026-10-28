@@ -371,21 +371,23 @@ and anything else running there never see the real value.
 sbx knows these services: `anthropic`, `copilot`, `cursor`, `devin`, `droid`,
 `github`, `google`, `groq`, `mistral`, `nebius`, `openai`, `openrouter`, `xai`.
 
-For example, a GitHub personal access token:
+For example, a GitHub personal access token. Run **one** of these:
 
-```sh
-# for every sandbox on this machine
-sbx secret set github                       # asks for the token without showing it
+- **Paste a token.** sbx asks for it and does not show it:
 
-# for one sandbox only
-sbx secret set github --sandbox my-project
+  ```sh
+  sbx secret set github --sandbox my-project
+  ```
 
-# in a script: read the token without echoing it, then pipe it in
-read -rs GH_PAT && echo "$GH_PAT" | sbx secret set github --sandbox my-project; unset GH_PAT
+- **Or, if you use the GitHub CLI,** let sbx take the token from `gh` each
+  time it needs one, so there is nothing to paste:
 
-# straight from the GitHub CLI, re-read when it expires
-sbx secret set github --command 'gh auth token'
-```
+  ```sh
+  sbx secret set github --sandbox my-project --command 'gh auth token'
+  ```
+
+`--sandbox my-project` gives the token to that sandbox only. Leave it out to
+share the token with every sandbox on this machine (see the scopes below).
 
 Never put the token itself on the command line, as in
 `echo "ghp_…" | sbx secret set github` or `--token ghp_…`: the shell saves the

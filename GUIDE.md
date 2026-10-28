@@ -133,6 +133,16 @@ sbx policy allow network "releases.astral.sh,release-assets.githubusercontent.co
 | `claude.ai` | signing Claude Code in, inside the sandbox |
 | `celltype.info` | what the `cap-tools` plugin talks to |
 
+> **Already used sbx on this machine?** Then it already has a policy, and
+> `sbx policy init balanced` fails with `global network policy is already
+> initialized`. Check which one with
+> `sbx policy inspect local-policy | grep default-`: if it lists
+> `default-code-and-containers` and the other `default-*` network rules, you are
+> on balanced; skip the init and run the `allow` line. If not (for example the
+> machine was set up with `deny-all`), switch with
+> `scripts/sbx-policy-rebalance.sh`, which keeps your existing rules. See
+> [TROUBLESHOOTING.md](TROUBLESHOOTING.md#network-policy).
+
 These rules apply to **every sandbox on this machine**, for every project, and
 stay until you remove them, so you do this step once, not per project or
 sandbox. Come back to it only when a new plugin needs a domain that is not
@@ -357,18 +367,7 @@ sbx rm my-project          # deletes the sandbox and its plugin installs; the pr
 
 ## Troubleshooting
 
-| Symptom | Cause and fix |
-|---|---|
-| `E: Unable to locate package docker-sbx` | not Ubuntu 24.04+; use the tarball in step 2 |
-| `error: not signed in to Docker` | step 3 |
-| `Global rate limit exceeded` on login | Docker's sign-in throttling; wait, or use a token (step 3) |
-| `global network policy has not been initialized` | `sbx policy init balanced` (step 4) |
-| a download fails or hangs inside the sandbox | blocked by policy: `sbx policy log` shows what was denied, then `sbx policy allow network <host>` |
-| `uvx: command not found` inside the sandbox | use `uv tool run …` instead |
-| `.claude/settings.json` shows as modified | Claude Code rewrites this file in its own key order when it installs plugins. cs-plugin 0.1.1+ puts the committed text back after `sync`; with an older version, or after installing plugins by hand, check `git diff` shows only reordering, then `git checkout -- .claude/settings.json`. |
-| `the generated files do not match plugins.toml` | `plugins.toml` was edited by hand; run `cs-plugin generate` on the laptop and commit |
-| `atlas-tools … is a bundle` | add the plugins it names instead; bundles would install unpinned |
-| `sbx` fails to start a sandbox on Linux | check `/dev/kvm` access (step 2) and run `sbx diagnose` |
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Reference
 

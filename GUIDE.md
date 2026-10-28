@@ -1,7 +1,11 @@
 # Claude Code plugins in Docker Sandboxes: setup from scratch
 
 How to set up a fresh machine so that Claude Code runs inside a Docker Sandbox
-(`sbx`) with exactly the plugins a project pins, and nothing else.
+(`sbx`), in **any project of your own**, with exactly the plugins you pin for
+that project, and nothing else.
+
+You do not need to clone this repository. It is the guide and a worked example;
+everything below happens in your own project folder.
 
 Tested on macOS 26 (Apple silicon) with sbx v0.49.2, Claude Code 2.1.306
 inside the sandbox, and cs-plugin 0.1.1 run from its GitHub release tag. Linux notes are in
@@ -11,14 +15,14 @@ step 2.
 
 | Piece | What it does |
 |---|---|
-| `plugins.toml` | the project's plugin list, each pinned to a release, committed to git |
-| `cs-plugin` | turns `plugins.toml` into files Claude Code reads (`add`, `upgrade`, …), and installs exactly those plugins (`sync`) |
+| `cs-plugin` | pins plugins for a project (`add`, `upgrade`, `remove`), and installs exactly those plugins (`sync`) |
+| `plugins.toml` | the project's plugin list, each pinned to a release; `cs-plugin add` creates it in your project |
 | `sbx` | runs Claude Code in an isolated VM, with the project folder mounted at the same path |
 
 The sandbox has its own `~/.claude` and never sees the plugins installed on your
 laptop. It does see the project folder. So you **choose plugins on the laptop**
-(edit and commit `plugins.toml`) and **install them inside the sandbox**
-(`cs-plugin sync`).
+(`cs-plugin add`, which writes `plugins.toml` and `.claude/` into your project)
+and **install them inside the sandbox** (`cs-plugin sync`).
 
 > cs-plugin is not on PyPI yet. Every `cs-plugin` command below runs it with
 > uv straight from its GitHub release tag, `pkg-cs-plugin--v0.1.1`. To move to
@@ -140,7 +144,8 @@ sbx policy allow network "releases.astral.sh,release-assets.githubusercontent.co
 > `default-code-and-containers` and the other `default-*` network rules, you are
 > on balanced; skip the init and run the `allow` line. If not (for example the
 > machine was set up with `deny-all`), switch with
-> `scripts/sbx-policy-rebalance.sh`, which keeps your existing rules. See
+> [`sbx-policy-rebalance.sh`](scripts/sbx-policy-rebalance.sh), which keeps
+> your existing rules. See
 > [TROUBLESHOOTING.md](TROUBLESHOOTING.md#network-policy).
 
 These rules apply to **every sandbox on this machine**, for every project, and
@@ -163,37 +168,44 @@ Check a domain at any time:
 sbx policy check network github.com      # Allowed: github.com:443
 ```
 
-## 5. Get the project
+## 5. Add plugins to your project with cs-plugin
 
-**Joining an existing project:** clone it. Its `plugins.toml` and `.claude/`
-folder are already committed.
-
-```sh
-git clone <project-url> ~/github/my-project
-cd ~/github/my-project
-```
-
-**Starting a new one:** pin plugins with cs-plugin, then commit.
+Go to your project's folder on the laptop. Any project works: an existing
+repository with its own code, or a new empty folder.
 
 ```sh
-mkdir -p ~/github/my-project && cd ~/github/my-project && git init
-cs-plugin list                                   # what is available
-cs-plugin add cap-tools@0.4.0                    # a version; or just the name for the newest
-git add -A && git commit -m "Pin Claude Code plugins"
+cd ~/github/my-project          # your project
+cs-plugin list                  # the plugins available, with their releases
+cs-plugin add cap-tools@0.4.0   # pin a release; or just `cap-tools` for the newest
 ```
 
-That writes:
+`add` writes these into the project, next to your own files:
 
 | File | What it is |
 |---|---|
-| `plugins.toml` | the pins, the file you read and edit |
+| `plugins.toml` | the pins, the file you read; change it with `cs-plugin add/remove/upgrade` |
 | `.claude/cs-plugin/` | the project's own plugin marketplace, generated from `plugins.toml` |
 | `.claude/settings.json` | tells Claude Code to use that marketplace and its plugins |
-| `.gitignore` | ignores `.claude/settings.local.json`, which holds a machine-specific path |
+| `.gitignore` | one line for `.claude/settings.local.json`, which holds a machine-specific path (git repositories only) |
+
+If the project already has a `.claude/settings.json`, `add` keeps what is in it
+and adds two keys, `extraKnownMarketplaces` and `enabledPlugins`. Check with
+`git diff`. Your code and other files are not touched.
+
+Add more plugins the same way (`cs-plugin add NAME …`). Then commit, so
+co-workers and other machines get the same pins:
+
+```sh
+git add plugins.toml .claude .gitignore
+git commit -m "Pin Claude Code plugins"
+```
+
+**Joining a project that already pins plugins** (it has a `plugins.toml`): skip
+`add`; clone or pull it and go on to step 6.
 
 ## 6. Create the sandbox
 
-From the project folder:
+From the project folder (`my-project` is the sandbox's name; any name works):
 
 ```sh
 sbx create --name my-project claude .
@@ -216,8 +228,8 @@ same path. Use `uv tool run` here: the sandbox has `uv` but not the `uvx`
 shortcut. The double quotes around the `git+…` address sit inside the single
 quotes, so they reach the sandbox intact.
 
-This one command is the whole install. `sync` reads `plugins.toml` and the
-generated `.claude/` files and runs `claude plugin install` for each pinned
+This one command is the whole install. `sync` reads the `plugins.toml` and
+`.claude/` files that step 5 wrote and runs `claude plugin install` for each pinned
 plugin at its pinned tag. Nothing else needs installing: the CLIs the skills
 call (such as `cap` for `cap-tools`) are fetched by uv the first time a skill
 uses them. Everything stays in the sandbox until `sbx rm`.
@@ -323,9 +335,10 @@ The part that runs inside the sandbox:
 Add `--output-format json` after `-p` for a structured result (answer, cost,
 duration, session ID) when a script reads the output.
 
-[`scripts/sbx-claude.sh`](scripts/sbx-claude.sh) wraps this command
-(`./scripts/sbx-claude.sh [--json] my-project "<prompt>"`), and
-[examples/](examples/) has prompts run this way with their recorded output.
+[`scripts/sbx-claude.sh`](scripts/sbx-claude.sh) in this repository wraps this
+command (`sbx-claude.sh [--json] my-project "<prompt>"`; copy it into your
+project or onto your PATH), and [examples/](examples/) has prompts run this way
+with their recorded output.
 
 ### Testing a tool without Claude
 
@@ -344,9 +357,121 @@ sbx exec my-project bash -lc 'uv tool run --from "git+https://github.com/Cellula
 [examples/03-cap-cli.md](examples/03-cap-cli.md) shows how to find the tag,
 define a `cap` shortcut in a sandbox shell, and what the output looks like.
 
-## 10. Changing plugins later
+## 10. Secrets: API keys, tokens and MCP keys
 
-On the laptop:
+Keep secrets **out of the project folder**: it is mounted into the sandbox and
+may be committed. Store them on the laptop with `sbx secret` instead. sbx keeps
+them in its secret store on the laptop (the system keychain), and its proxy
+adds them to requests as they leave the sandbox. Inside the sandbox, the
+matching environment variable holds only a placeholder, so Claude, the plugins
+and anything else running there never see the real value.
+
+### Built-in services: GitHub, Anthropic, OpenAI, …
+
+sbx knows these services: `anthropic`, `copilot`, `cursor`, `devin`, `droid`,
+`github`, `google`, `groq`, `mistral`, `nebius`, `openai`, `openrouter`, `xai`.
+
+For example, a GitHub personal access token. Run **one** of these:
+
+- **Paste a token.** sbx asks for it and does not show it:
+
+  ```sh
+  sbx secret set github --sandbox my-project
+  ```
+
+- **Or, if you use the GitHub CLI,** let sbx take the token from `gh` each
+  time it needs one, so there is nothing to paste:
+
+  ```sh
+  sbx secret set github --sandbox my-project --command 'gh auth token'
+  ```
+
+`--sandbox my-project` gives the token to that sandbox only. Leave it out to
+share the token with every sandbox on this machine (see the scopes below).
+
+Never put the token itself on the command line, as in
+`echo "ghp_…" | sbx secret set github` or `--token ghp_…`: the shell saves the
+whole line, token included, in its history file (`~/.zsh_history`,
+`~/.bash_history`). If that happened, revoke the token on GitHub and delete the
+line from the history file.
+
+Inside the sandbox, `GH_TOKEN` is set to a placeholder
+(`gho_sbxproxymanaged000…`); `gh`, `git` and other tools use it as usual, and
+the proxy swaps in your token on requests to GitHub. To check:
+
+```sh
+sbx exec my-project bash -lc 'echo "$GH_TOKEN"; curl -s https://api.github.com/user'
+```
+
+`"Requires authentication"` means no GitHub token is stored for that sandbox.
+Restart a running sandbox (`sbx stop my-project`, then `sbx run --name
+my-project`) after adding or changing a secret.
+
+For Claude itself, signing in with `/login` (step 9) is usually enough; to use
+an API key instead, `sbx secret set anthropic`.
+
+### Other APIs and MCP servers: custom secrets
+
+For a service sbx does not know, such as an API an MCP server calls, use
+`set-custom` (experimental in sbx v0.49). You give the host the key is for and
+the environment variable to put the placeholder in:
+
+```sh
+read -rs EXAMPLE_KEY                        # paste the key; it is not shown or saved in history
+sbx secret set-custom --sandbox my-project \
+  --host api.example.com --env EXAMPLE_API_KEY --value "$EXAMPLE_KEY"
+unset EXAMPLE_KEY
+```
+
+Inside the sandbox, `EXAMPLE_API_KEY` holds the placeholder, and the proxy
+replaces it with the key in the **headers** of requests to `api.example.com`.
+So it works for keys sent in a header (such as `Authorization: Bearer …`),
+not for keys put in a URL or request body. The host must also be allowed by
+the network policy (step 4).
+
+An MCP server set up for the project in `.mcp.json` should read the key from
+that variable, never contain it:
+
+```json
+{
+  "mcpServers": {
+    "example": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${EXAMPLE_API_KEY}" }
+    }
+  }
+}
+```
+
+`.mcp.json` can then be committed safely; each person stores their own key
+with `sbx secret`.
+
+### One secret for all sandboxes, or one per project
+
+| Scope | How | Use it for |
+|---|---|---|
+| global | `sbx secret set github` | a key you are happy for every sandbox, and so every project, to use |
+| one sandbox | `sbx secret set github --sandbox my-project` | a key for one project, such as a fine-grained GitHub token limited to that project's repository |
+
+Each project gets its own sandbox (step 6), so scoping a secret to the sandbox
+scopes it to the project. Prefer per-sandbox secrets with the narrowest
+permissions that work: anything running in a sandbox, including a plugin's
+tools, can use the secrets that sandbox has.
+
+### Seeing and removing secrets
+
+```sh
+sbx secret ls                               # all, with their scope; values are never shown
+sbx secret ls --sandbox my-project          # one sandbox's
+sbx secret rm github                        # the global one
+sbx secret rm github --sandbox my-project   # one sandbox's
+sbx secret import                           # offer keys found in your shell's environment (GH_TOKEN, OPENAI_API_KEY, …)
+```
+
+## 11. Changing plugins later
+
+On the laptop, in the project folder:
 
 ```sh
 cs-plugin outdated                 # pins with a newer release
@@ -357,11 +482,19 @@ git commit -am "Update plugin pins"
 Then re-run step 7 to install the change in the sandbox, and restart Claude
 (`sbx run --name my-project`). A co-worker who pulls the change does the same.
 
-## 11. Cleaning up
+To use the plugins in another project, repeat steps 5–7 there: pins are per
+project, and each project gets its own sandbox. Steps 1–4 are not repeated.
+
+## 12. Cleaning up
 
 ```sh
 sbx rm my-project          # deletes the sandbox and its plugin installs; the project folder stays
+sbx secret ls              # then remove any secrets you scoped to it (step 10)
 ```
+
+To take cs-plugin out of a project as well, delete `plugins.toml` and
+`.claude/cs-plugin/`, and remove the `extraKnownMarketplaces` and
+`enabledPlugins` entries from `.claude/settings.json`.
 
 ---
 

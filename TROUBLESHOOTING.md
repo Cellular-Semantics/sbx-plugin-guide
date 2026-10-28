@@ -43,9 +43,15 @@ and carry on with the `sbx policy allow network …` line in step 4.
 Otherwise, switch to `balanced` with
 [scripts/sbx-policy-rebalance.sh](scripts/sbx-policy-rebalance.sh). Changing the
 preset needs `sbx policy reset`, which deletes **every** local rule (global and
-per-sandbox), so the script saves your own rules first and adds them back:
+per-sandbox), so the script saves your own rules first and adds them back.
+It does not need a project; download it if you have not cloned this
+repository:
 
 ```sh
+mkdir -p scripts
+curl -fsSL -o scripts/sbx-policy-rebalance.sh https://raw.githubusercontent.com/Cellular-Semantics/sbx-plugin-guide/main/scripts/sbx-policy-rebalance.sh
+chmod +x scripts/sbx-policy-rebalance.sh
+
 scripts/sbx-policy-rebalance.sh --dry-run   # lists the rules it will add back; changes nothing
 scripts/sbx-policy-rebalance.sh             # asks y/N, then resets, inits balanced, re-adds
 ```

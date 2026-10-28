@@ -15,7 +15,7 @@ and recorded example runs.
 
 | Path | What it is |
 |---|---|
-| [GUIDE.md](GUIDE.md) | setup from scratch: uv, sbx, network policy, adding plugins to your project with cs-plugin, the sandbox, running skills |
+| [GUIDE.md](GUIDE.md) | setup from scratch: uv, sbx, network policy, adding plugins to your project with cs-plugin, the sandbox, running skills, secrets |
 | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | fixes for common problems, including a machine whose network policy is not balanced |
 | [examples/](examples/) | prompts run in the sandbox, with their recorded output |
 | [scripts/sbx-claude.sh](scripts/sbx-claude.sh) | run one prompt with Claude inside the sandbox, from the laptop |

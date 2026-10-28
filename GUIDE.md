@@ -357,7 +357,110 @@ sbx exec my-project bash -lc 'uv tool run --from "git+https://github.com/Cellula
 [examples/03-cap-cli.md](examples/03-cap-cli.md) shows how to find the tag,
 define a `cap` shortcut in a sandbox shell, and what the output looks like.
 
-## 10. Changing plugins later
+## 10. Secrets: API keys, tokens and MCP keys
+
+Keep secrets **out of the project folder**: it is mounted into the sandbox and
+may be committed. Store them on the laptop with `sbx secret` instead. sbx keeps
+them in its secret store on the laptop (the system keychain), and its proxy
+adds them to requests as they leave the sandbox. Inside the sandbox, the
+matching environment variable holds only a placeholder, so Claude, the plugins
+and anything else running there never see the real value.
+
+### Built-in services: GitHub, Anthropic, OpenAI, …
+
+sbx knows these services: `anthropic`, `copilot`, `cursor`, `devin`, `droid`,
+`github`, `google`, `groq`, `mistral`, `nebius`, `openai`, `openrouter`, `xai`.
+
+For example, a GitHub personal access token (the token below is a dummy):
+
+```sh
+# for every sandbox on this machine
+sbx secret set github                       # asks for the token without showing it
+
+# for one sandbox only
+echo "ghp_EXAMPLE0000000000000000000000000000" | sbx secret set github --sandbox my-project
+
+# straight from the GitHub CLI, re-read when it expires
+sbx secret set github --command 'gh auth token'
+```
+
+Avoid `--token <value>`: it lands in your shell history.
+
+Inside the sandbox, `GH_TOKEN` is set to a placeholder
+(`gho_sbxproxymanaged000…`); `gh`, `git` and other tools use it as usual, and
+the proxy swaps in your token on requests to GitHub. To check:
+
+```sh
+sbx exec my-project bash -lc 'echo "$GH_TOKEN"; curl -s https://api.github.com/user'
+```
+
+`"Requires authentication"` means no GitHub token is stored for that sandbox.
+Restart a running sandbox (`sbx stop my-project`, then `sbx run --name
+my-project`) after adding or changing a secret.
+
+For Claude itself, signing in with `/login` (step 9) is usually enough; to use
+an API key instead, `sbx secret set anthropic`.
+
+### Other APIs and MCP servers: custom secrets
+
+For a service sbx does not know, such as an API an MCP server calls, use
+`set-custom` (experimental in sbx v0.49). You give the host the key is for and
+the environment variable to put the placeholder in:
+
+```sh
+read -rs EXAMPLE_KEY                        # paste the key; it is not shown or saved in history
+sbx secret set-custom --sandbox my-project \
+  --host api.example.com --env EXAMPLE_API_KEY --value "$EXAMPLE_KEY"
+unset EXAMPLE_KEY
+```
+
+Inside the sandbox, `EXAMPLE_API_KEY` holds the placeholder, and the proxy
+replaces it with the key in the **headers** of requests to `api.example.com`.
+So it works for keys sent in a header (such as `Authorization: Bearer …`),
+not for keys put in a URL or request body. The host must also be allowed by
+the network policy (step 4).
+
+An MCP server set up for the project in `.mcp.json` should read the key from
+that variable, never contain it:
+
+```json
+{
+  "mcpServers": {
+    "example": {
+      "type": "http",
+      "url": "https://api.example.com/mcp",
+      "headers": { "Authorization": "Bearer ${EXAMPLE_API_KEY}" }
+    }
+  }
+}
+```
+
+`.mcp.json` can then be committed safely; each person stores their own key
+with `sbx secret`.
+
+### One secret for all sandboxes, or one per project
+
+| Scope | How | Use it for |
+|---|---|---|
+| global | `sbx secret set github` | a key you are happy for every sandbox, and so every project, to use |
+| one sandbox | `sbx secret set github --sandbox my-project` | a key for one project, such as a fine-grained GitHub token limited to that project's repository |
+
+Each project gets its own sandbox (step 6), so scoping a secret to the sandbox
+scopes it to the project. Prefer per-sandbox secrets with the narrowest
+permissions that work: anything running in a sandbox, including a plugin's
+tools, can use the secrets that sandbox has.
+
+### Seeing and removing secrets
+
+```sh
+sbx secret ls                               # all, with their scope; values are never shown
+sbx secret ls --sandbox my-project          # one sandbox's
+sbx secret rm github                        # the global one
+sbx secret rm github --sandbox my-project   # one sandbox's
+sbx secret import                           # offer keys found in your shell's environment (GH_TOKEN, OPENAI_API_KEY, …)
+```
+
+## 11. Changing plugins later
 
 On the laptop, in the project folder:
 
@@ -373,10 +476,11 @@ Then re-run step 7 to install the change in the sandbox, and restart Claude
 To use the plugins in another project, repeat steps 5–7 there: pins are per
 project, and each project gets its own sandbox. Steps 1–4 are not repeated.
 
-## 11. Cleaning up
+## 12. Cleaning up
 
 ```sh
 sbx rm my-project          # deletes the sandbox and its plugin installs; the project folder stays
+sbx secret ls              # then remove any secrets you scoped to it (step 10)
 ```
 
 To take cs-plugin out of a project as well, delete `plugins.toml` and
